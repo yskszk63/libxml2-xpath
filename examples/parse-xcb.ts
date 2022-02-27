@@ -1,4 +1,4 @@
-import { parseDocument, XPathContext, XML_ELEMENT_NODE } from "../mod.ts";
+import { parseDocument, XPathContext, XML_ELEMENT_NODE } from "https://deno.land/x/libxml2_xpath/mod.ts";
 
 const fp = (await Deno.open("/usr/share/xcb/xproto.xml")).readable;
 try {
