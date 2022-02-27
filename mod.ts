@@ -154,7 +154,7 @@ export class XPathContext {
     }
   }
 
-  *evaluate(exp: string, node?: Node | undefined): Iterable<Node> {
+  evaluate(exp: string, node?: Node | undefined): Iterable<Node> {
     if (this.#ptr === "freed") {
       throw new Error("already freed.");
     }
@@ -169,28 +169,30 @@ export class XPathContext {
       throw new Error("eval failed."); // TODO
     }
 
-    try {
-      const v = new Deno.UnsafePointerView(obj);
-      const ty = v.getUint32(0);
-      if (ty !== 1 /* XPATH_NODESET */) {
-        throw new Error();
-      }
-      const nodesetval = new Deno.UnsafePointerView(new Deno.UnsafePointer(v.getBigUint64(8)));
-      const nodeNr = nodesetval.getInt32(0);
-      //const nodeMax = nodesetval.getInt32(4);
-      const nodeTab = new Deno.UnsafePointerView(new Deno.UnsafePointer(nodesetval.getBigUint64(8)));
-      const live = new Uint8Array(1);
+    return (function*() {
       try {
-        for (let i = 0; i < nodeNr; i++) {
-          const node = new Deno.UnsafePointer(nodeTab.getBigUint64(i * 8));
-          yield new NodeImpl(live, node);
+        const v = new Deno.UnsafePointerView(obj);
+        const ty = v.getUint32(0);
+        if (ty !== 1 /* XPATH_NODESET */) {
+          throw new Error();
+        }
+        const nodesetval = new Deno.UnsafePointerView(new Deno.UnsafePointer(v.getBigUint64(8)));
+        const nodeNr = nodesetval.getInt32(0);
+        //const nodeMax = nodesetval.getInt32(4);
+        const nodeTab = new Deno.UnsafePointerView(new Deno.UnsafePointer(nodesetval.getBigUint64(8)));
+        const controller = new AbortController();
+        try {
+          for (let i = 0; i < nodeNr; i++) {
+            const node = new Deno.UnsafePointer(nodeTab.getBigUint64(i * 8));
+            yield new NodeImpl(controller.signal, node);
+          }
+        } finally {
+          controller.abort();
         }
       } finally {
-        Atomics.store(live, 0, 1);
+        lib.symbols.xmlXPathFreeObject(obj);
       }
-    } finally {
-      lib.symbols.xmlXPathFreeObject(obj);
-    }
+    })();
   }
 
   free() {
@@ -295,25 +297,26 @@ export type Node = {
 }
 
 class NodeImpl {
-  #live: Uint8Array;
+  #signal: AbortSignal;
   #ptr: Deno.UnsafePointer;
 
-  constructor(live: Uint8Array, ptr: Deno.UnsafePointer) {
-    this.#live = live;
+  constructor(signal: AbortSignal, ptr: Deno.UnsafePointer) {
+    this.#signal = signal;
     this.#ptr = ptr;
   }
 
   get [getPtr](): Deno.UnsafePointer {
-    if (Atomics.load(this.#live, 0)) {
+    if (this.#signal.aborted) {
       throw new Error("dead");
     }
     return this.#ptr;
   }
 
   get type(): ElementType {
-    if (Atomics.load(this.#live, 0)) {
+    if (this.#signal.aborted) {
       throw new Error("dead");
     }
+
     switch (new Deno.UnsafePointerView(this.#ptr).getInt32(8)) {
       case 1: return XML_ELEMENT_NODE;
       case 2: return XML_ATTRIBUTE_NODE;
@@ -341,14 +344,14 @@ class NodeImpl {
   }
 
   get tagName(): string {
-    if (Atomics.load(this.#live, 0)) {
+    if (this.#signal.aborted) {
       throw new Error("dead");
     }
     return new Deno.UnsafePointerView(new Deno.UnsafePointer(new Deno.UnsafePointerView(this.#ptr).getBigUint64(8 * 2))).getCString();
   }
 
   get textContent(): string {
-    if (Atomics.load(this.#live, 0)) {
+    if (this.#signal.aborted) {
       throw new Error("dead");
     }
 
@@ -359,12 +362,14 @@ class NodeImpl {
     try {
       return new Deno.UnsafePointerView(r).getCString();
     } finally {
-      lib.symbols.xmlFree(r);
+      libc.symbols.free(r);
+      // FIXME Calling xmlFree will cause SEGV. Why..?
+      //lib.symbols.xmlFree(r);
     }
   }
 
   attr(name: string): string | null {
-    if (Atomics.load(this.#live, 0)) {
+    if (this.#signal.aborted) {
       throw new Error("dead");
     }
 
@@ -383,22 +388,20 @@ class NodeImpl {
 }
 
 export async function parseDocument(input: ReadableStream<Uint8Array>): Promise<Document> {
-  const reader = input.getReader({ mode: "byob" });
+  const reader = input.getReader();
   try {
-    const { value } = await reader.read(new Uint8Array(1024 * 8));
-    if (!value) {
+    let r = await reader.read();
+    if (r.done) {
       throw new Error("unexpected EOF.");
     }
 
-    const ctx = new PushParseCtxt(value);
-    let buf = new Uint8Array(value.buffer);
-    while (true) {
-      const r = await reader.read(buf);
-      if (r.done) {
-        break;
+    const ctx = new PushParseCtxt(r.value);
+    while (!r.done) {
+      r = await reader.read();
+      if (!r.value) {
+        continue;
       }
       ctx.add(r.value);
-      buf = new Uint8Array(r.value.buffer);
     }
     return ctx.finish();
   } finally {
