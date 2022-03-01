@@ -1,9 +1,16 @@
-import { assertEquals, fail, assertThrows, assertRejects } from "https://deno.land/std@0.127.0/testing/asserts.ts";
+import {
+  assertEquals,
+  assertRejects,
+  assertThrows,
+  fail,
+} from "https://deno.land/std@0.127.0/testing/asserts.ts";
 
-import { parseDocument, XPathContext, XML_ELEMENT_NODE, Node } from "./mod.ts";
+import { Node, parseDocument, XML_ELEMENT_NODE, XPathContext } from "./mod.ts";
 
 Deno.test("Test parse simple content and query.", async () => {
-  const xml = new Blob(['<item name="world!">hello</item>'], { type: "application/xml" });
+  const xml = new Blob(['<item name="world!">hello</item>'], {
+    type: "application/xml",
+  });
   const response = await fetch(URL.createObjectURL(xml));
   if (response.body === null) {
     fail();
@@ -30,7 +37,9 @@ Deno.test("Test parse simple content and query.", async () => {
 });
 
 Deno.test("Test nested lement.", async () => {
-  const xml = new Blob(['<item><value>ok</value></item>'], { type: "application/xml" });
+  const xml = new Blob(["<item><value>ok</value></item>"], {
+    type: "application/xml",
+  });
   const response = await fetch(URL.createObjectURL(xml));
   if (response.body === null) {
     fail();
@@ -59,7 +68,9 @@ Deno.test("Test nested lement.", async () => {
 });
 
 Deno.test("Test large xml.", async () => {
-  const response = await fetch("https://www.iana.org/assignments/media-types/media-types.xml");
+  const response = await fetch(
+    "https://www.iana.org/assignments/media-types/media-types.xml",
+  );
   if (response.body === null) {
     fail();
   }
@@ -68,7 +79,7 @@ Deno.test("Test large xml.", async () => {
 });
 
 Deno.test("Test free document after free.", async () => {
-  const xml = new Blob(['<item/>'], { type: "application/xml" });
+  const xml = new Blob(["<item/>"], { type: "application/xml" });
   const response = await fetch(URL.createObjectURL(xml));
   if (response.body === null) {
     fail();
@@ -79,7 +90,7 @@ Deno.test("Test free document after free.", async () => {
 });
 
 Deno.test("Failure when use freed document.", async () => {
-  const xml = new Blob(['<item/>'], { type: "application/xml" });
+  const xml = new Blob(["<item/>"], { type: "application/xml" });
   const response = await fetch(URL.createObjectURL(xml));
   if (response.body === null) {
     fail();
@@ -91,7 +102,7 @@ Deno.test("Failure when use freed document.", async () => {
 });
 
 Deno.test("Failure invalid document.", async () => {
-  const xml = new Blob(['<item>'], { type: "application/xml" });
+  const xml = new Blob(["<item>"], { type: "application/xml" });
   const response = await fetch(URL.createObjectURL(xml));
   if (response.body === null) {
     fail();
@@ -109,7 +120,7 @@ Deno.test("Failure invalid document2.", async () => {
 });
 
 Deno.test("Fail when evaluate after freed.", async () => {
-  const xml = new Blob(['<item/>'], { type: "application/xml" });
+  const xml = new Blob(["<item/>"], { type: "application/xml" });
   const response = await fetch(URL.createObjectURL(xml));
   if (response.body === null) {
     fail();
@@ -125,7 +136,7 @@ Deno.test("Fail when evaluate after freed.", async () => {
 });
 
 Deno.test("Test free XPathContext after free.", async () => {
-  const xml = new Blob(['<item/>'], { type: "application/xml" });
+  const xml = new Blob(["<item/>"], { type: "application/xml" });
   const response = await fetch(URL.createObjectURL(xml));
   if (response.body === null) {
     fail();
@@ -141,7 +152,7 @@ Deno.test("Test free XPathContext after free.", async () => {
 });
 
 Deno.test("Test free XPathContext after free.", async () => {
-  const xml = new Blob(['<item/>'], { type: "application/xml" });
+  const xml = new Blob(["<item/>"], { type: "application/xml" });
   const response = await fetch(URL.createObjectURL(xml));
   if (response.body === null) {
     fail();
@@ -157,7 +168,7 @@ Deno.test("Test free XPathContext after free.", async () => {
 });
 
 Deno.test("Fail use node outer loop.", async () => {
-  const xml = new Blob(['<item/>'], { type: "application/xml" });
+  const xml = new Blob(["<item/>"], { type: "application/xml" });
   const response = await fetch(URL.createObjectURL(xml));
   if (response.body === null) {
     fail();
@@ -189,4 +200,3 @@ Deno.test("Fail use node outer loop.", async () => {
     doc.free();
   }
 });
-
