@@ -249,12 +249,15 @@ type ElementType =
 | typeof XML_XINCLUDE_END
 | typeof XML_DOCB_DOCUMENT_NODE
 
-export type Node = {
+export type Element = {
   type: typeof XML_ELEMENT_NODE,
   tagName: string,
   textContent: string,
   attr(name: string): string | null,
-} | {
+}
+
+export type Node =
+  Element | {
   type: typeof XML_ATTRIBUTE_NODE,
 } | {
   type: typeof XML_TEXT_NODE,
