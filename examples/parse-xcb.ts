@@ -1,4 +1,8 @@
-import { parseDocument, XPathContext, XML_ELEMENT_NODE } from "https://deno.land/x/libxml2_xpath/mod.ts";
+import {
+  parseDocument,
+  XML_ELEMENT_NODE,
+  XPathContext,
+} from "https://deno.land/x/libxml2_xpath/mod.ts";
 
 const fp = (await Deno.open("/usr/share/xcb/xproto.xml")).readable;
 try {
@@ -16,7 +20,12 @@ try {
             if (item.type !== XML_ELEMENT_NODE) {
               continue;
             }
-            console.log("  ", item.tagName, item.attr("type"), item.attr("name"));
+            console.log(
+              "  ",
+              item.tagName,
+              item.attr("type"),
+              item.attr("name"),
+            );
           }
         }
       }
@@ -26,7 +35,7 @@ try {
   } finally {
     doc.free();
   }
-} catch(e) {
+} catch (e) {
   await fp.cancel();
   throw e;
 }

@@ -65,7 +65,7 @@ const lib = Deno.dlopen("libxml2.so", {
   },
 });
 
-const libc = Deno.dlopen("",{
+const libc = Deno.dlopen("", {
   "free": {
     parameters: ["pointer"],
     result: "void",
@@ -86,7 +86,13 @@ class PushParseCtxt {
   #ptr: Deno.UnsafePointer | "closed";
 
   constructor(chunk: Uint8Array) {
-    this.#ptr = lib.symbols.xmlCreatePushParserCtxt(null, null, chunk, chunk.length, cstr("<mem>"));
+    this.#ptr = lib.symbols.xmlCreatePushParserCtxt(
+      null,
+      null,
+      chunk,
+      chunk.length,
+      cstr("<mem>"),
+    );
     if (!this.#ptr.value) {
       throw new Error(`${this.#ptr}`);
     }
@@ -161,7 +167,11 @@ export class XPathContext {
 
     let obj: Deno.UnsafePointer;
     if (node) {
-      obj = lib.symbols.xmlXPathNodeEval((node as NodeImpl)[getPtr], cstr(exp), this.#ptr);
+      obj = lib.symbols.xmlXPathNodeEval(
+        (node as NodeImpl)[getPtr],
+        cstr(exp),
+        this.#ptr,
+      );
     } else {
       obj = lib.symbols.xmlXPathEval(cstr(exp), this.#ptr);
     }
@@ -169,17 +179,21 @@ export class XPathContext {
       throw new Error("eval failed."); // TODO
     }
 
-    return (function*() {
+    return (function* () {
       try {
         const v = new Deno.UnsafePointerView(obj);
         const ty = v.getUint32(0);
         if (ty !== 1 /* XPATH_NODESET */) {
           throw new Error();
         }
-        const nodesetval = new Deno.UnsafePointerView(new Deno.UnsafePointer(v.getBigUint64(8)));
+        const nodesetval = new Deno.UnsafePointerView(
+          new Deno.UnsafePointer(v.getBigUint64(8)),
+        );
         const nodeNr = nodesetval.getInt32(0);
         //const nodeMax = nodesetval.getInt32(4);
-        const nodeTab = new Deno.UnsafePointerView(new Deno.UnsafePointer(nodesetval.getBigUint64(8)));
+        const nodeTab = new Deno.UnsafePointerView(
+          new Deno.UnsafePointer(nodesetval.getBigUint64(8)),
+        );
         const controller = new AbortController();
         try {
           for (let i = 0; i < nodeNr; i++) {
@@ -226,78 +240,77 @@ export const XML_XINCLUDE_START = Symbol("XML_XINCLUDE_START");
 export const XML_XINCLUDE_END = Symbol("XML_XINCLUDE_END");
 export const XML_DOCB_DOCUMENT_NODE = Symbol("XML_DOCB_DOCUMENT_NODE");
 
-type ElementType = 
-| typeof XML_ELEMENT_NODE
-| typeof XML_ATTRIBUTE_NODE
-| typeof XML_TEXT_NODE
-| typeof XML_CDATA_SECTION_NODE
-| typeof XML_ENTITY_REF_NODE
-| typeof XML_ENTITY_NODE
-| typeof XML_PI_NODE
-| typeof XML_COMMENT_NODE
-| typeof XML_DOCUMENT_NODE
-| typeof XML_DOCUMENT_TYPE_NODE
-| typeof XML_DOCUMENT_FRAG_NODE
-| typeof XML_NOTATION_NODE
-| typeof XML_HTML_DOCUMENT_NODE
-| typeof XML_DTD_NODE
-| typeof XML_ELEMENT_DECL
-| typeof XML_ATTRIBUTE_DECL
-| typeof XML_ENTITY_DECL
-| typeof XML_NAMESPACE_DECL
-| typeof XML_XINCLUDE_START
-| typeof XML_XINCLUDE_END
-| typeof XML_DOCB_DOCUMENT_NODE
+type ElementType =
+  | typeof XML_ELEMENT_NODE
+  | typeof XML_ATTRIBUTE_NODE
+  | typeof XML_TEXT_NODE
+  | typeof XML_CDATA_SECTION_NODE
+  | typeof XML_ENTITY_REF_NODE
+  | typeof XML_ENTITY_NODE
+  | typeof XML_PI_NODE
+  | typeof XML_COMMENT_NODE
+  | typeof XML_DOCUMENT_NODE
+  | typeof XML_DOCUMENT_TYPE_NODE
+  | typeof XML_DOCUMENT_FRAG_NODE
+  | typeof XML_NOTATION_NODE
+  | typeof XML_HTML_DOCUMENT_NODE
+  | typeof XML_DTD_NODE
+  | typeof XML_ELEMENT_DECL
+  | typeof XML_ATTRIBUTE_DECL
+  | typeof XML_ENTITY_DECL
+  | typeof XML_NAMESPACE_DECL
+  | typeof XML_XINCLUDE_START
+  | typeof XML_XINCLUDE_END
+  | typeof XML_DOCB_DOCUMENT_NODE;
 
 export type Element = {
-  type: typeof XML_ELEMENT_NODE,
-  tagName: string,
-  textContent: string,
-  attr(name: string): string | null,
-}
+  type: typeof XML_ELEMENT_NODE;
+  tagName: string;
+  textContent: string;
+  attr(name: string): string | null;
+};
 
-export type Node =
-  Element | {
-  type: typeof XML_ATTRIBUTE_NODE,
+export type Node = Element | {
+  type: typeof XML_ATTRIBUTE_NODE;
 } | {
-  type: typeof XML_TEXT_NODE,
+  type: typeof XML_TEXT_NODE;
 } | {
-  type: typeof XML_CDATA_SECTION_NODE,
+  type: typeof XML_CDATA_SECTION_NODE;
 } | {
-  type: typeof XML_ENTITY_REF_NODE,
+  type: typeof XML_ENTITY_REF_NODE;
 } | {
-  type: typeof XML_ENTITY_NODE,
+  type: typeof XML_ENTITY_NODE;
 } | {
-  type: typeof XML_PI_NODE,
+  type: typeof XML_PI_NODE;
 } | {
-  type: typeof XML_COMMENT_NODE,
+  type: typeof XML_COMMENT_NODE;
 } | {
-  type: typeof XML_DOCUMENT_NODE,
+  type: typeof XML_DOCUMENT_NODE;
 } | {
-  type: typeof XML_DOCUMENT_TYPE_NODE,
+  type: typeof XML_DOCUMENT_TYPE_NODE;
 } | {
-  type: typeof XML_DOCUMENT_FRAG_NODE,
+  type: typeof XML_DOCUMENT_FRAG_NODE;
 } | {
-  type: typeof XML_NOTATION_NODE,
+  type: typeof XML_NOTATION_NODE;
 } | {
-  type: typeof XML_HTML_DOCUMENT_NODE,
+  type: typeof XML_HTML_DOCUMENT_NODE;
 } | {
-  type: typeof XML_DTD_NODE,
+  type: typeof XML_DTD_NODE;
 } | {
-  type: typeof XML_ELEMENT_DECL,
+  type: typeof XML_ELEMENT_DECL;
 } | {
-  type: typeof XML_ATTRIBUTE_DECL,
+  type: typeof XML_ATTRIBUTE_DECL;
 } | {
-  type: typeof XML_ENTITY_DECL,
+  type: typeof XML_ENTITY_DECL;
 } | {
-  type: typeof XML_NAMESPACE_DECL,
+  type: typeof XML_NAMESPACE_DECL;
 } | {
-  type: typeof XML_XINCLUDE_START,
+  type: typeof XML_XINCLUDE_START;
 } | {
-  type: typeof XML_XINCLUDE_END,
+  type: typeof XML_XINCLUDE_END;
 } | {
-  type: typeof XML_DOCB_DOCUMENT_NODE,
-}
+  type: typeof XML_DOCB_DOCUMENT_NODE;
+};
 
 class NodeImpl {
   #signal: AbortSignal;
@@ -321,28 +334,50 @@ class NodeImpl {
     }
 
     switch (new Deno.UnsafePointerView(this.#ptr).getInt32(8)) {
-      case 1: return XML_ELEMENT_NODE;
-      case 2: return XML_ATTRIBUTE_NODE;
-      case 3: return XML_TEXT_NODE;
-      case 4: return XML_CDATA_SECTION_NODE;
-      case 5: return XML_ENTITY_REF_NODE;
-      case 6: return XML_ENTITY_NODE;
-      case 7: return XML_PI_NODE;
-      case 8: return XML_COMMENT_NODE;
-      case 9: return XML_DOCUMENT_NODE;
-      case 10: return XML_DOCUMENT_TYPE_NODE;
-      case 11: return XML_DOCUMENT_FRAG_NODE;
-      case 12: return XML_NOTATION_NODE;
-      case 13: return XML_HTML_DOCUMENT_NODE;
-      case 14: return XML_DTD_NODE;
-      case 15: return XML_ELEMENT_DECL;
-      case 16: return XML_ATTRIBUTE_DECL;
-      case 17: return XML_ENTITY_DECL;
-      case 18: return XML_NAMESPACE_DECL;
-      case 19: return XML_XINCLUDE_START;
-      case 20: return XML_XINCLUDE_END;
-      case 21: return XML_DOCB_DOCUMENT_NODE;
-      default: throw new Error();
+      case 1:
+        return XML_ELEMENT_NODE;
+      case 2:
+        return XML_ATTRIBUTE_NODE;
+      case 3:
+        return XML_TEXT_NODE;
+      case 4:
+        return XML_CDATA_SECTION_NODE;
+      case 5:
+        return XML_ENTITY_REF_NODE;
+      case 6:
+        return XML_ENTITY_NODE;
+      case 7:
+        return XML_PI_NODE;
+      case 8:
+        return XML_COMMENT_NODE;
+      case 9:
+        return XML_DOCUMENT_NODE;
+      case 10:
+        return XML_DOCUMENT_TYPE_NODE;
+      case 11:
+        return XML_DOCUMENT_FRAG_NODE;
+      case 12:
+        return XML_NOTATION_NODE;
+      case 13:
+        return XML_HTML_DOCUMENT_NODE;
+      case 14:
+        return XML_DTD_NODE;
+      case 15:
+        return XML_ELEMENT_DECL;
+      case 16:
+        return XML_ATTRIBUTE_DECL;
+      case 17:
+        return XML_ENTITY_DECL;
+      case 18:
+        return XML_NAMESPACE_DECL;
+      case 19:
+        return XML_XINCLUDE_START;
+      case 20:
+        return XML_XINCLUDE_END;
+      case 21:
+        return XML_DOCB_DOCUMENT_NODE;
+      default:
+        throw new Error();
     }
   }
 
@@ -350,7 +385,11 @@ class NodeImpl {
     if (this.#signal.aborted) {
       throw new Error("dead");
     }
-    return new Deno.UnsafePointerView(new Deno.UnsafePointer(new Deno.UnsafePointerView(this.#ptr).getBigUint64(8 * 2))).getCString();
+    return new Deno.UnsafePointerView(
+      new Deno.UnsafePointer(
+        new Deno.UnsafePointerView(this.#ptr).getBigUint64(8 * 2),
+      ),
+    ).getCString();
   }
 
   get textContent(): string {
@@ -390,7 +429,9 @@ class NodeImpl {
   }
 }
 
-export async function parseDocument(input: ReadableStream<Uint8Array>): Promise<Document> {
+export async function parseDocument(
+  input: ReadableStream<Uint8Array>,
+): Promise<Document> {
   const reader = input.getReader();
   try {
     let r = await reader.read();
