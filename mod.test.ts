@@ -58,7 +58,6 @@ Deno.test("Test nested lement.", async () => {
   }
 });
 
-/*
 Deno.test("Test large xml.", async () => {
   const response = await fetch("https://www.iana.org/assignments/media-types/media-types.xml");
   if (response.body === null) {
@@ -67,7 +66,6 @@ Deno.test("Test large xml.", async () => {
   const doc = await parseDocument(response.body);
   doc.free();
 });
-*/
 
 Deno.test("Test free document after free.", async () => {
   const xml = new Blob(['<item/>'], { type: "application/xml" });
